@@ -16,8 +16,8 @@ CATEGORICAL_COLUMNS =[
     "academic_status",
 ]
 
-ID_COLUMN =[
-    "student_id"
+REG_COLUMN =[
+    "student_reg"
 ]
 PROGRAMMES=["BIT", "BCS", "BSE", "BACMP", "BBIT"]
 GENDERS=["Male","Female"]
