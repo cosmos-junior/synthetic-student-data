@@ -24,6 +24,10 @@ NUMERICAL_COLUMNS = [
     "final_score",
 ]
 
+ORDINAL_COLUMNS = {
+    "year_of_study": [1, 2, 3, 4],
+}
+
 
 def configure_metadata():
 
