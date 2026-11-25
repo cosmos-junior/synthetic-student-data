@@ -58,11 +58,11 @@ def configure_metadata():
             sdtype="categorical",
         )
 
-    for column in NUMERICAL_COLUMNS:
+    for column, categories in ORDINAL_COLUMNS.items():
         metadata.update_column(
-            column,
+            "year_of_study",
             table_name=TABLE_NAME,
-            sdtype="numerical",
+            sdtype="ordinal",
         )
 
     # Validate the metadata configuration.
