@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "rest_framework",
     "rest_framework.authtoken",
+    "drf_spectacular",
     "datasets",
 ]
 
@@ -112,5 +113,22 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Synthetic Student Data Platform API",
+    "DESCRIPTION": "Privacy-aware synthetic tabular data generation, profiling, and evaluation API.",
+    "VERSION": "1.0.0",
+}
+
+# Celery & Redis configuration (eager mode enabled by default for local/test without Redis)
+CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://127.0.0.1:6379/0")
+CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", "redis://127.0.0.1:6379/0")
+CELERY_TASK_ALWAYS_EAGER = os.environ.get("CELERY_TASK_ALWAYS_EAGER", "true").lower() == "true"
+CELERY_TASK_EAGER_PROPAGATES = True
+
+# Private upload limits
+DATA_UPLOAD_MAX_MEMORY_SIZE = 26 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 26 * 1024 * 1024
 

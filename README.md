@@ -1,75 +1,78 @@
 # Privacy-Aware Synthetic Student Data Generation and Evaluation Framework
 
-A research and software project for generating synthetic student academic tabular data and evaluating it across statistical fidelity, privacy risk, and downstream machine-learning utility.
+A full-stack research and software platform for generating synthetic student and institutional tabular datasets and evaluating them across statistical fidelity, empirical privacy risk, and leak-free downstream machine-learning utility.
 
-## Models to compare
-- Gaussian Copula
-- CTGAN (Conditional Tabular GAN)
-- TVAE (Tabular Variational Autoencoder)
+## Models Compared
+- **Gaussian Copula** (`sdv.single_table.GaussianCopulaSynthesizer`)
+- **CTGAN** (`sdv.single_table.CTGANSynthesizer`)
+- **TVAE** (`sdv.single_table.TVAESynthesizer`)
 
-## Research aim
-To design and develop a privacy-aware framework for generating and evaluating synthetic student academic datasets for research and machine-learning applications.
+## Research Aim & Objectives
+To design and develop a privacy-aware framework for generating and evaluating synthetic student academic datasets for research and machine-learning applications:
+1. Analyze structural, statistical, and relational characteristics of student academic data (`schema.py`, `validation.py`, `profiling.py`).
+2. Implement synthetic tabular data generation using Gaussian Copula, CTGAN, and TVAE with deterministic domain post-processing (`generation_utils.py`).
+3. Evaluate synthetic datasets across statistical fidelity (`SDMetrics`), empirical privacy risk (`NewRowSynthesis`, `DCRBaselineProtection`, `DisclosureProtection`, nearest-neighbor DCR, duplicate detection, membership inference indicator), and leak-free TRTR/TSTR ML utility (`evaluate_models.py`).
+4. Provide a web platform (`backend/` + `frontend/`) enabling authorized users to upload datasets, review/confirm SDV metadata, run experiments, inspect interactive dashboards, and export CSVs and PDF reports.
 
-## Specific objectives
-1. To investigate existing synthetic tabular data generation techniques and analyze the structural, statistical, and relational characteristics of student academic data.
-2. To design and implement a synthetic student academic data generation framework using Gaussian Copula, CTGAN, and TVAE.
-3. To evaluate the generated synthetic student academic datasets in terms of statistical fidelity, privacy risk, and downstream machine-learning utility.
-4. To develop a user-facing platform that enables authorized users to generate synthetic student academic datasets and view comparative evaluation results.
+## Architecture & Repository Structure
+- `src/synthetic_data/`: Core ML/data-science pipeline (`schema.py`, `validation.py`, `profiling.py`, `configure_metadata.py`, `generation_utils.py`, `generate_gaussian_copula.py`, `generate_ctgan.py`, `generate_tvae.py`, `evaluate_models.py`, `visualize_evaluation.py`).
+- `backend/`: Django + Django REST Framework API (`datasets` app, token auth, ownership isolation, Celery/Redis background tasks, ReportLab PDF export, OpenAPI/Swagger at `/api/docs/`).
+- `frontend/`: React + TypeScript + Vite + Tailwind CSS + Recharts + TanStack Query + React Router + React Hook Form + Zod hybrid dashboard.
+- `tests/`: Automated Python unit tests (`pytest`).
+- `docs/`: Technical reports and codebase guides.
 
-## Evaluation dimensions
+## Technology Stack
+- **Data Science & ML:** Python 3.11, pandas, NumPy, SDV (`2.2.0`), SDMetrics (`0.33.0`), scikit-learn, Matplotlib, Seaborn
+- **Backend:** Django 5, Django REST Framework, Celery, Redis, drf-spectacular, ReportLab, SQLite (dev) / PostgreSQL (production via env vars)
+- **Frontend:** React 19, TypeScript, Vite, Tailwind CSS, Recharts, Lucide React, React Router, TanStack Query, React Hook Form, Zod
 
-| Dimension | Focus |
-|---|---|
-| Statistical fidelity | Distributions, correlations, ranges, and multivariate relationships |
-| Privacy risk | Similarity to source records and feasible disclosure or inference risks |
-| ML utility | Performance on selected downstream machine-learning tasks |
+## Setup & Running Locally
 
-Synthetic data is not automatically anonymous or privacy-safe. This project treats privacy as an evaluation dimension and will report limitations transparently.
-
-## Planned technology stack
-- Data science: Python, pandas, NumPy, SDV, SDMetrics, scikit-learn
-- Backend: Django and Django REST Framework
-- Frontend: React and TypeScript
-- Database: PostgreSQL
-- Possible background processing: Celery and Redis
-
-## Repository structure
-- `backend/`: Django REST API (planned)
-- `frontend/`: React + TypeScript client (planned)
-- `data/`: local source and processed datasets
-- `docs/`: research and technical documentation
-- `notebooks/`: exploratory analysis
-- `src/synthetic_data/`: reusable generation and evaluation code
-- `tests/`: automated tests
-
-## Getting started (Windows CMD)
-
-Python 3.11 is recommended for the initial data-science environment.
-
-```cmd
-git clone https://github.com/cosmos-junior/synthetic-student-data.git
-cd synthetic-student-data
-py -3.11 -m venv .venv
-.venv\Scripts\activate
-python -m pip install --upgrade pip
+### 1. Python Environment
+```powershell
+python -m venv .class
+.\.class\Scripts\Activate.ps1
 pip install -r requirements.txt
+pip install -r backend\requirements.txt
+```
+Copy `.env.example` to `.env` and set secrets/database settings as needed.
+
+### 2. Backend (Django REST API)
+```powershell
+.\.class\Scripts\python backend\manage.py migrate
+.\.class\Scripts\python backend\manage.py createsuperuser
+.\.class\Scripts\python backend\manage.py runserver
+```
+Optional Celery worker (when `CELERY_TASK_ALWAYS_EAGER=false` and Redis is running):
+```powershell
+cd backend
+..\.class\Scripts\celery -A config worker --loglevel=info
+```
+Swagger API documentation is available at `http://127.0.0.1:8000/api/docs/`.
+
+### 3. Frontend (React + TypeScript)
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+Open `http://localhost:5173`.
+
+## Running Automated Tests
+```powershell
+# Python ML/data-science unit tests
+.\.class\Scripts\pytest -v
+
+# Django REST API, ownership, upload, and workflow tests
+.\.class\Scripts\python backend\manage.py test datasets -v 2
+
+# Frontend TypeScript & Vite production build
+cd frontend && npm run build
 ```
 
-Verify the installation:
-
-```cmd
-python -c "import pandas, sdv, sdmetrics; print('Environment ready')"
-```
-
-## Data protection
-- Do not commit identifiable student records, institutional exports, credentials, API keys, or environment files.
-- Keep raw datasets outside version control.
-- Confirm dataset licensing and obtain institutional authorization where required.
-- Document preprocessing, model settings, random seeds, and evaluation procedures.
-- Use artificial fixtures in automated tests.
-
-## Development status
-Initial repository scaffold. The next implementation stage is to establish a validated student academic data schema and test the generation models before building the web platform.
-
-## License
-No license has been selected yet. All rights remain with the repository owner until a license is added.
+## Data Protection & Limitations
+- Direct identifiers (`student_id`, etc.) are excluded from synthesizer training and regenerated synthetically (`IN1700001`–`IN1700500` for student records).
+- Exported CSVs are neutralized against CSV formula injection.
+- Uploaded institutional CSVs are stored privately on disk and filtered per-user (`owner=request.user` / `created_by=request.user`).
+- **Privacy disclaimer:** `NewRowSynthesis`, `DCRBaselineProtection`, `DisclosureProtection`, and nearest-neighbor DCR are empirical privacy-risk indicators, **not** formal Differential Privacy ($\epsilon, \delta$) guarantees.
+- **Post-processing note:** Deterministic post-processing of derived student academic fields (`final_score`, `grade`, `academic_status`) alters joint statistics; all final evaluations are computed on the post-processed dataset.

@@ -1,16 +1,93 @@
-"""DRF serializers for generation jobs and evaluation results."""
+"""DRF serializers for auth, institutional datasets, experiments, and evaluations."""
 
+from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from .models import EvaluationResult, GenerationJob
+from .models import AuditLog, EvaluationResult, GenerationJob, InstitutionalDataset
+
+User = get_user_model()
+
+
+class RegisterSerializer(serializers.ModelSerializer):
+    """Registers a new researcher user account."""
+
+    password = serializers.CharField(write_only=True, min_length=8)
+
+    class Meta:
+        model = User
+        fields = ["id", "username", "email", "password"]
+
+    def create(self, validated_data):
+        return User.objects.create_user(
+            username=validated_data["username"],
+            email=validated_data.get("email", ""),
+            password=validated_data["password"],
+        )
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["id", "username", "email", "is_staff", "date_joined"]
+        read_only_fields = fields
+
+
+class InstitutionalDatasetSerializer(serializers.ModelSerializer):
+    owner_username = serializers.CharField(source="owner.username", read_only=True)
+    category_display = serializers.CharField(source="get_category_display", read_only=True)
+
+    class Meta:
+        model = InstitutionalDataset
+        fields = [
+            "id",
+            "name",
+            "description",
+            "category",
+            "category_display",
+            "original_filename",
+            "file_size_bytes",
+            "file_sha256",
+            "row_count",
+            "column_count",
+            "authorization_confirmed",
+            "profile_json",
+            "metadata_json",
+            "column_overrides",
+            "metadata_confirmed",
+            "validation_warnings",
+            "owner_username",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
+
+
+class MetadataConfirmSerializer(serializers.Serializer):
+    column_overrides = serializers.DictField(child=serializers.CharField())
 
 
 class GenerationJobCreateSerializer(serializers.ModelSerializer):
-    """Validates parameters for launching a synthetic data generation job."""
+    """Validates parameters for launching a synthetic data generation experiment."""
+
+    dataset = serializers.PrimaryKeyRelatedField(
+        queryset=InstitutionalDataset.objects.all(),
+        required=False,
+        allow_null=True,
+    )
+    random_seed = serializers.IntegerField(required=False, default=42)
+    model_config = serializers.JSONField(required=False, default=dict)
 
     class Meta:
         model = GenerationJob
-        fields = ["model_type", "num_rows", "epochs", "batch_size"]
+        fields = [
+            "dataset",
+            "model_type",
+            "num_rows",
+            "epochs",
+            "batch_size",
+            "random_seed",
+            "model_config",
+        ]
 
     def validate_num_rows(self, value: int) -> int:
         if not 10 <= value <= 10000:
@@ -23,6 +100,11 @@ class GenerationJobCreateSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, attrs: dict) -> dict:
+        request = self.context.get("request")
+        dataset = attrs.get("dataset")
+        if dataset and request and not request.user.is_staff and dataset.owner != request.user:
+            raise serializers.ValidationError({"dataset": "You do not have access to this dataset."})
+
         model_type = attrs.get("model_type")
         batch_size = attrs.get("batch_size", 500)
         if batch_size < 10:
@@ -35,28 +117,39 @@ class GenerationJobCreateSerializer(serializers.ModelSerializer):
 
 
 class GenerationJobSerializer(serializers.ModelSerializer):
-    """Full representation of a generation job."""
+    """Full representation of a generation experiment."""
 
     model_type_display = serializers.CharField(source="get_model_type_display", read_only=True)
     created_by_username = serializers.CharField(source="created_by.username", read_only=True)
+    dataset_name = serializers.CharField(source="dataset.name", read_only=True, default="Built-in Student Training Data")
 
     class Meta:
         model = GenerationJob
         fields = [
             "id",
+            "dataset",
+            "dataset_name",
+            "dataset_fingerprint",
             "model_type",
             "model_type_display",
             "num_rows",
             "epochs",
             "batch_size",
+            "random_seed",
+            "training_row_count",
+            "sdv_version",
+            "model_config",
             "status",
             "output_file",
             "validation_passed",
             "validation_errors",
             "summary_stats",
+            "evaluation_json",
             "error_message",
+            "duration_seconds",
             "created_by_username",
             "created_at",
+            "started_at",
             "completed_at",
         ]
         read_only_fields = fields
@@ -78,6 +171,13 @@ class EvaluationResultSerializer(serializers.ModelSerializer):
             "new_row_synthesis",
             "dcr_baseline_protection",
             "disclosure_protection",
+            "dcr_mean",
+            "dcr_min",
+            "dcr_p05",
+            "exact_duplicate_rate",
+            "near_duplicate_rate",
+            "membership_inference_risk",
+            "privacy_risk_label",
             "status_accuracy",
             "status_macro_f1",
             "final_score_r2",
@@ -85,3 +185,10 @@ class EvaluationResultSerializer(serializers.ModelSerializer):
             "evaluated_at",
         ]
 
+
+class AuditLogSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source="user.username", read_only=True)
+
+    class Meta:
+        model = AuditLog
+        fields = ["id", "username", "action", "resource_type", "resource_id", "details", "created_at"]

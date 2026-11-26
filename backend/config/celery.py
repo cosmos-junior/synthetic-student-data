@@ -1,0 +1,10 @@
+"""Celery application configuration for asynchronous dataset and ML jobs."""
+
+import os
+from celery import Celery
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+
+app = Celery("synthetic_student_data")
+app.config_from_object("django.conf:settings", namespace="CELERY")
+app.autodiscover_tasks()

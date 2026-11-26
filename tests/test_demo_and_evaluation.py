@@ -30,12 +30,16 @@ def test_evaluate_ml_utility_returns_expected_metrics():
 
     metrics = evaluate_ml_utility(train_df, test_df)
 
-    assert set(metrics.keys()) == {
+    expected_keys = {
         "status_accuracy",
+        "status_precision",
+        "status_recall",
         "status_macro_f1",
-        "final_score_r2",
+        "final_score_mae",
         "final_score_rmse",
+        "final_score_r2",
     }
+    assert expected_keys.issubset(metrics.keys())
     assert 0.0 <= metrics["status_accuracy"] <= 1.0
     assert 0.0 <= metrics["status_macro_f1"] <= 1.0
     assert metrics["final_score_rmse"] >= 0.0

@@ -1,14 +1,23 @@
 import { useState } from "react";
-import { EvaluationPanel } from "./components/EvaluationPanel";
-import { GeneratePanel } from "./components/GeneratePanel";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { logoutUser } from "./api";
+import { Layout } from "./components/Layout";
 import { LoginPanel } from "./components/LoginPanel";
-
-type Tab = "generate" | "evaluate";
+import { DatasetExplorerPage } from "./pages/DatasetExplorerPage";
+import { DatasetsPage } from "./pages/DatasetsPage";
+import { EvaluationPage } from "./pages/EvaluationPage";
+import { ExperimentsPage } from "./pages/ExperimentsPage";
+import { GeneratePage } from "./pages/GeneratePage";
+import { MlUtilityPage } from "./pages/MlUtilityPage";
+import { OverviewPage } from "./pages/OverviewPage";
+import { PrivacyPage } from "./pages/PrivacyPage";
+import { ReportsPage } from "./pages/ReportsPage";
+import { ProfilePage, SettingsPage } from "./pages/SettingsAndProfilePages";
+import { UploadDatasetPage } from "./pages/UploadDatasetPage";
 
 export function App() {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem("auth_token"));
   const [username, setUsername] = useState<string>(() => localStorage.getItem("auth_user") ?? "");
-  const [activeTab, setActiveTab] = useState<Tab>("generate");
 
   function handleAuthenticated(newToken: string, user: string) {
     localStorage.setItem("auth_token", newToken);
@@ -17,7 +26,14 @@ export function App() {
     setUsername(user);
   }
 
-  function handleLogout() {
+  async function handleLogout() {
+    if (token) {
+      try {
+        await logoutUser(token);
+      } catch {
+        // Clear local session even if token already expired
+      }
+    }
     localStorage.removeItem("auth_token");
     localStorage.removeItem("auth_user");
     setToken(null);
@@ -29,40 +45,25 @@ export function App() {
   }
 
   return (
-    <>
-      <header className="topbar">
-        <div>
-          <h1>Privacy-Aware Synthetic Student Data Platform</h1>
-          <p className="topbar-sub">Signed in as {username || "researcher"}</p>
-        </div>
-        <nav className="nav-tabs" aria-label="Main navigation">
-          <button
-            type="button"
-            className={`tab-btn ${activeTab === "generate" ? "active" : ""}`}
-            onClick={() => setActiveTab("generate")}
-          >
-            Generate Datasets
-          </button>
-          <button
-            type="button"
-            className={`tab-btn ${activeTab === "evaluate" ? "active" : ""}`}
-            onClick={() => setActiveTab("evaluate")}
-          >
-            Evaluation &amp; Reports
-          </button>
-          <button type="button" className="btn btn-secondary" onClick={handleLogout}>
-            Sign Out
-          </button>
-        </nav>
-      </header>
-      <main className="container">
-        {activeTab === "generate" ? (
-          <GeneratePanel token={token} />
-        ) : (
-          <EvaluationPanel token={token} />
-        )}
-      </main>
-    </>
+    <BrowserRouter>
+      <Layout username={username} onLogout={() => void handleLogout()}>
+        <Routes>
+          <Route path="/" element={<OverviewPage token={token} />} />
+          <Route path="/datasets" element={<DatasetsPage token={token} />} />
+          <Route path="/upload" element={<UploadDatasetPage token={token} />} />
+          <Route path="/explorer" element={<DatasetExplorerPage token={token} />} />
+          <Route path="/generate" element={<GeneratePage token={token} />} />
+          <Route path="/evaluation" element={<EvaluationPage token={token} />} />
+          <Route path="/privacy" element={<PrivacyPage token={token} />} />
+          <Route path="/ml-utility" element={<MlUtilityPage token={token} />} />
+          <Route path="/experiments" element={<ExperimentsPage token={token} />} />
+          <Route path="/reports" element={<ReportsPage token={token} />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/profile" element={<ProfilePage token={token} onLogout={() => void handleLogout()} />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Layout>
+    </BrowserRouter>
   );
 }
 
