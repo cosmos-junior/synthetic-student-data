@@ -1,5 +1,5 @@
 model,quality_overall,column_shapes,column_pair_trends,data_validity,data_structure,new_row_synthesis,dcr_baseline_protection,disclosure_protection,status_accuracy,status_macro_f1,final_score_r2,final_score_rmse
 Real Baseline (TRTR),1.0,1.0,1.0,1.0,1.0,,,,0.86,0.6905,0.5766,8.7214
-Gaussian Copula,0.9354,0.9548,0.9161,1.0,1.0,1.0,0.1916,0.8648,0.85,0.6789,0.5824,8.6615
-CTGAN,0.7685,0.8336,0.7035,0.9992,1.0,1.0,0.3128,0.8678,0.86,0.5245,-0.208,14.731
-TVAE,0.8276,0.8342,0.8209,1.0,1.0,1.0,0.1475,0.8657,0.84,0.5556,0.6014,8.4619
+Gaussian Copula,0.9354,0.9548,0.9161,1.0,1.0,1.0,0.1863,0.8648,0.85,0.6789,0.5824,8.6615
+CTGAN,0.7685,0.8336,0.7035,0.9992,1.0,1.0,0.3256,0.8678,0.86,0.5245,-0.208,14.731
+TVAE,0.8276,0.8342,0.8209,1.0,1.0,1.0,0.1518,0.8657,0.84,0.5556,0.6014,8.4619
